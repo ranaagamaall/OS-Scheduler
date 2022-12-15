@@ -9,6 +9,16 @@ int pfinished =0;
 process *CurrentProcess = NULL;
 process data;
 int msgid;
+FILE *fptr; //For the .log file
+int TA;
+float WTA;
+FILE *perfptr; //For the .perf file
+float utilization;
+int sumRuntime=0;
+int sumWaitingtime=0;
+float sumWTA;
+int Lfinish;
+
 
 int main(int argc, char *argv[])
 {
@@ -28,25 +38,20 @@ int main(int argc, char *argv[])
 
     pCount = atoi(argv[1]);
 
-    int time;
-    time = getClk();
+    // int time;
+    // time = getClk();
     int rec_val;
+
+    fptr = fopen("Scheduler_SJF.log", "w");
+    fprintf(fptr, "#At time x process y state arr w total z remain y wait k \n");
 
     while(pCount!=pfinished)
     {
-        do
+        rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, !IPC_NOWAIT); // shouldn't wait for msg
+        if (rec_val != -1)
         {
-            /* receive all types of messages */
-            rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, IPC_NOWAIT); // shouldn't wait for msg
-            if (rec_val == -1 && isEmpty_Queue(&ReadyQueue) == 1)
-            {
-                rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, !IPC_NOWAIT);
-            }
-            if (rec_val != -1)
-            {
-                enqueue(&ReadyQueue, msg.proc);
-            }
-        } while (rec_val != -1);
+            enqueue(&ReadyQueue, msg.proc);
+        }
 
 
         int pid, status;
@@ -57,7 +62,6 @@ int main(int argc, char *argv[])
             CurrentProcess = &data;
             CurrentProcess->state = RUNNING;
             dequeue(&ReadyQueue);
-            printf("\nProcess %d Running: %d %d %d %d\n", CurrentProcess->processId,CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->priority);
             CurrentProcess->startTime = getClk();
             CurrentProcess->waitingTime = getClk() - CurrentProcess->arrivalTime;
             pid = fork();
@@ -71,12 +75,16 @@ int main(int argc, char *argv[])
             else
             {
                 printf("At time %d process %d started arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->runTime, CurrentProcess->waitingTime);
+                fprintf(fptr,"At time %d process %d started arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->runTime, CurrentProcess->waitingTime);
             }
         }
     }
 
-
-
+    utilization=((float)sumRuntime/(float)Lfinish)*100;
+    perfptr = fopen("Scheduler.perf", "w");
+    fprintf(perfptr,"CPU utilization = %0.2f%%Avg\n",utilization);
+    fprintf(perfptr,"WTA=%.2f\n",(float)sumWTA/(float)pCount);
+    fprintf(perfptr,"Average waiting=%.2f\n",(float)sumWaitingtime/(float)pCount);
 
     //whileloop(PCount)
         //2a2ra mn elmessege queue (Weslet f ma3adha) 
@@ -92,8 +100,21 @@ int main(int argc, char *argv[])
 
 void childHandler(int signum)
 {
-    printf("The proccess has finished: %d start: %d run: %d\n", getClk(), CurrentProcess->startTime, CurrentProcess->runTime);
+    CurrentProcess->finishTime = getClk();
+    //For the .log file 
+    TA = CurrentProcess->finishTime - CurrentProcess->arrivalTime;
+    WTA = (float)TA / (float)CurrentProcess->runTime;
+    fprintf(fptr,"At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", CurrentProcess->finishTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->runTime, CurrentProcess->waitingTime, TA, WTA);
+    CurrentProcess->state = FINISHED;
     pfinished++;
+
+    //For the .perf file 
+    sumRuntime+=CurrentProcess->runTime;
+    sumWaitingtime+=CurrentProcess->waitingTime;
+    sumWTA+=WTA;
+    Lfinish=CurrentProcess->finishTime;
+    
+    
     CurrentProcess = NULL;
     signal(SIGCHLD, childHandler);
 }
@@ -102,6 +123,8 @@ void schedulerHandler(int signum)
 {
     printf("The Scheduler has stopped\n");
     msgctl(msgid, IPC_RMID, NULL);
+    fclose(perfptr);
+    fclose(fptr);
     destroyClk(true);
     exit(0);
 }

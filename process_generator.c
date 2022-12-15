@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
     {
         sleep(1);
         x = getClk();
-        printf("Current Time is %d\n", x);
+        //printf("Current Time is %d\n", x); For printing the timer
         while (arrTime[currentP] == x)
         {
 
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 
             if (send_msg == 0)
             {
-                printf ("At time %d Sent messege: Id:%d arrival_time=%d run_time=%d priority=%d\n",x,id[currentP],arrTime[currentP], runTime[currentP],priority[currentP] );
+                //printf ("At time %d Sent messege: Id:%d arrival_time=%d run_time=%d priority=%d\n",x,id[currentP],arrTime[currentP], runTime[currentP],priority[currentP] );
             }
             // 2. Increment the current process index.
             currentP++;

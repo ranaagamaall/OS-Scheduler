@@ -11,11 +11,10 @@ int main(int agrc, char *argv[])
     //TODO The process needs to get the remaining time from somewhere
     //remainingtime = ??;
     remainingTime = atoi(argv[1]);
-    printf("I am the proccess file & The running time is %d\n", remainingTime);
+    //printf("I am the proccess file & The running time is %d\n", remainingTime);
     
     startclk=getClk();
     while (getClk() < startclk + remainingTime);
-     printf("I am the proccess file & i have finished at %d\n", startclk + remainingTime);
     //destroyClk(false);
 
     return 0;
