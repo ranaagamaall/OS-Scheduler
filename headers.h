@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include "process_data.h"
+#include "queue.h"
 
 typedef short bool;
 #define true 1
@@ -60,3 +62,20 @@ void destroyClk(bool terminateAll)
         killpg(getpgrp(), SIGINT);
     }
 }
+
+
+
+///////////////////Omar//////////////////////////
+// Message Struct
+struct msgbuffer
+{
+    long mtype;
+    process proc;
+};
+
+
+enum ProcessStatus{
+WAITING,
+RUNNING, 
+FINISHED, 
+PREEMPTED};
