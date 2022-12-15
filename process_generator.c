@@ -6,7 +6,6 @@ int send_msg;
 
 int main(int argc, char *argv[])
 {
-    puts("I have started");
     signal(SIGINT, clearResources);
     // TODO Initialization
     // 1. Read the input files.
@@ -112,10 +111,8 @@ int main(int argc, char *argv[])
 
             if (send_msg == 0)
             {
-                printf("message successful at time %d \n", x);
-                printf ("Sent messege: Id:%d arrival_time=%d run_time=%d priority=%d\n",id[currentP],arrTime[currentP], runTime[currentP],priority[currentP] );
+                printf ("At time %d Sent messege: Id:%d arrival_time=%d run_time=%d priority=%d\n",x,id[currentP],arrTime[currentP], runTime[currentP],priority[currentP] );
             }
-            printf("sent process %d\n", currentP);
             // 2. Increment the current process index.
             currentP++;
         }
@@ -124,11 +121,27 @@ int main(int argc, char *argv[])
     
     // 6. Send the information to the scheduler at the appropriate time.
     // 7. Clear clock resources
-    destroyClk(true);
+    //destroyClk(true);
+
+    int status;
+    scheduler_pid = wait(&status);
+    if (WIFEXITED(status))
+    {
+        int msgq_del;
+        msgq_del = msgctl(msgid, IPC_RMID, 0);
+        destroyClk(true);
+        exit(0);
+    }
+
+    return 0;
 }
 
 void clearResources(int signum)
 {
-    printf("5alast ya 8aly\n");
+    // TODO Clears all resources in case of interruption
+    printf("The process generator has stopped\n");
+    int msgq_del;
+    msgq_del = msgctl(msgid, IPC_RMID, 0);
+    destroyClk(true);
     exit(0);
 }

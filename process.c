@@ -15,7 +15,8 @@ int main(int agrc, char *argv[])
     
     startclk=getClk();
     while (getClk() < startclk + remainingTime);
-    destroyClk(false);
+     printf("I am the proccess file & i have finished at %d\n", startclk + remainingTime);
+    //destroyClk(false);
 
     return 0;
 }

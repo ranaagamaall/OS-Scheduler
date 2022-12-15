@@ -1,14 +1,13 @@
 #include "headers.h"
 
 void childHandler(int signum);
+void schedulerHandler(int signum);
 
 struct Queue ReadyQueue;
 int pCount = 0;
 int pfinished =0;
 process *CurrentProcess = NULL;
 process data;
-int finishedProcess = 0;
-int processCount = 0;
 int msgid;
 
 int main(int argc, char *argv[])
@@ -16,6 +15,7 @@ int main(int argc, char *argv[])
     initClk();
     ReadyQueue=createQueue();
     signal(SIGCHLD, childHandler);
+    signal(SIGINT, schedulerHandler);
 
     key_t key = ftok("./clk.c", 'Z');
     msgid = msgget(key, IPC_CREAT | 0666);
@@ -27,9 +27,8 @@ int main(int argc, char *argv[])
     }
 
     pCount = atoi(argv[1]);
-    //printf("Proccess Count=%d\n", pCount);
 
-    int time, nextTime;
+    int time;
     time = getClk();
     int rec_val;
 
@@ -49,33 +48,29 @@ int main(int argc, char *argv[])
             }
         } while (rec_val != -1);
 
-        nextTime = getClk();
-        if (nextTime >= time)
-        {
-            int pid, status;
 
-            if (CurrentProcess == NULL && isEmpty_Queue(&ReadyQueue) == 0)
+        int pid, status;
+
+        if (CurrentProcess == NULL && isEmpty_Queue(&ReadyQueue) == 0)
+        {
+            data = peek_Queue(&ReadyQueue);
+            CurrentProcess = &data;
+            CurrentProcess->state = RUNNING;
+            dequeue(&ReadyQueue);
+            printf("\nProcess %d Running: %d %d %d %d\n", CurrentProcess->processId,CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->priority);
+            CurrentProcess->startTime = getClk();
+            CurrentProcess->waitingTime = getClk() - CurrentProcess->arrivalTime;
+            pid = fork();
+            if (pid == 0)
             {
-                data = peek_Queue(&ReadyQueue);
-                CurrentProcess = &data;
-                printf("I am process %d\n", CurrentProcess->processId);
-                CurrentProcess->state = RUNNING;
-                dequeue(&ReadyQueue);
-                //printf("\nProcess Running: %d %d %d %d\n", CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->priority);
-                CurrentProcess->startTime = getClk();
-                CurrentProcess->waitingTime = getClk() - CurrentProcess->arrivalTime;
-                pid = fork();
-                if (pid == 0)
-                {
-                    char buffer[20];
-                    sprintf(buffer, "%d", CurrentProcess->runTime);
-                    char *argv[] = {"./process.out", buffer, NULL, 0};
-                    execve(argv[0], &argv[0], NULL);
-                }
-                else
-                {
-                    printf("At time %d process %d started arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->runTime, CurrentProcess->waitingTime);
-                }
+                char buffer[20];
+                sprintf(buffer, "%d", CurrentProcess->runTime);
+                char *argv[] = {"./process.out", buffer, NULL, 0};
+                execve(argv[0], &argv[0], NULL);
+            }
+            else
+            {
+                printf("At time %d process %d started arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->runTime, CurrentProcess->waitingTime);
             }
         }
     }
@@ -87,14 +82,26 @@ int main(int argc, char *argv[])
         //2a2ra mn elmessege queue (Weslet f ma3adha) 
         //enque priority 
         //peek => Fork elproccess(execv remaining time/quantum lw feeh(quantum=remaining time)) => dequeue   
+    //destroyClk(true);
+
     destroyClk(true);
+    msgctl(msgid, IPC_RMID, (struct msqid_ds *)0);
+    return 0;
 }
 
 
 void childHandler(int signum)
 {
-    printf("clk: %d start: %d run: %d\n", getClk(), CurrentProcess->startTime, CurrentProcess->runTime);
-    finishedProcess++;
+    printf("The proccess has finished: %d start: %d run: %d\n", getClk(), CurrentProcess->startTime, CurrentProcess->runTime);
+    pfinished++;
     CurrentProcess = NULL;
     signal(SIGCHLD, childHandler);
+}
+
+void schedulerHandler(int signum)
+{
+    printf("The Scheduler has stopped\n");
+    msgctl(msgid, IPC_RMID, NULL);
+    destroyClk(true);
+    exit(0);
 }
