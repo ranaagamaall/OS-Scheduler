@@ -72,12 +72,26 @@ int main(int argc, char *argv[])
     //scheduler forking (Conditions of the different algorithms)
     int scheduler_pid = fork();
     if (scheduler_pid == 0){
-        char buffer1[20];
+        
+        //send process count to all schedulers
+        char buffer1[20], buffer2[20];
         sprintf(buffer1, "%d", pCount);
         argv[1] = buffer1;
 
-        if (execv("./scheduler.out", argv) == -1)
-            perror("failed to execv");
+        if(algorithm == SJF){
+            if (execv("./scheduler.out", argv) == -1)
+                perror("failed to execv");
+        }
+
+        if(algorithm == RR){
+            printf("round robin arrived \n");
+            sprintf(buffer2, "%d", quantum);
+            argv[2] = buffer2;
+            if (execv("./scheduler_RR.out", argv) == -1)
+                perror("failed to execv");
+    
+        }
+
     }
 
     key_t key = ftok("./clk.c", 'Z');
@@ -93,7 +107,7 @@ int main(int argc, char *argv[])
     int currentP= 0;
     int x;
     x = getClk();
-    while (currentP < pCount)
+    while (currentP < pCount)       //send all processes to scheduler
     {
         sleep(1);
         x = getClk();
@@ -105,8 +119,13 @@ int main(int argc, char *argv[])
             msg.proc.processId = id[currentP];
             msg.proc.arrivalTime = arrTime[currentP];
             msg.proc.runTime = runTime[currentP];
-            msg.proc.priority = runTime[currentP];
-            
+            msg.proc.state = WAITING;
+
+            //priority decision
+            if(algorithm == SJF) msg.proc.priority = runTime[currentP];
+            else if(algorithm == RR) msg.proc.priority = 1;     //constant priority ==> works as regular queue
+
+
             send_msg = msgsnd(msgid, &msg, sizeof(msg.proc), !IPC_NOWAIT);
 
             if (send_msg == 0)

@@ -4,7 +4,7 @@ typedef struct process
     int priority;
     int processId;
     int arrivalTime;
-    int PID;
+    pid_t PID;
 
     int state;
 
