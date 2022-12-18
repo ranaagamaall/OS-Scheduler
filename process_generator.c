@@ -72,39 +72,31 @@ int main(int argc, char *argv[])
     //scheduler forking (Conditions of the different algorithms)
     int scheduler_pid = fork();
     if (scheduler_pid == 0){
+        char buffer1[20], buffer2[20];
+        sprintf(buffer1, "%d", pCount);
+        argv[1] = buffer1;
+        
         if (algorithm == SJF)
         {
-            char buffer1[20];
-            sprintf(buffer1, "%d", pCount);
-            argv[1] = buffer1;
-
             if (execv("./scheduler_SJF.out", argv) == -1)
                 perror("failed to execv");
         }
         else if (algorithm == HPF)
         {
-            char buffer1[20];
-            sprintf(buffer1, "%d", pCount);
-            argv[1] = buffer1;
-
             if (execv("./scheduler_HPF.out", argv) == -1)
                 perror("failed to execv");
         }
         else if (algorithm == RR)
         {
-            char buffer1[20];
-            sprintf(buffer1, "%d", pCount);
-            argv[1] = buffer1;
+            printf("Round Robin arrived \n");
+            sprintf(buffer2, "%d", quantum);
+            argv[2] = buffer2;
 
             if (execv("./scheduler_RR.out", argv) == -1)
                 perror("failed to execv");
         }
         else if (algorithm == MLFL)
         {
-            char buffer1[20];
-            sprintf(buffer1, "%d", pCount);
-            argv[1] = buffer1;
-
             if (execv("./scheduler_MLFL.out", argv) == -1)
                 perror("failed to execv");
         }
@@ -124,7 +116,7 @@ int main(int argc, char *argv[])
     int currentP= 0;
     int x;
     x = getClk();
-    while (currentP < pCount)
+    while (currentP < pCount)       //send all processes to scheduler
     {
         sleep(1);
         x = getClk();
@@ -136,9 +128,13 @@ int main(int argc, char *argv[])
             msg.proc.processId = id[currentP];
             msg.proc.arrivalTime = arrTime[currentP];
             msg.proc.runTime = runTime[currentP];
-            msg.proc.priority = priority[currentP];
+            
             msg.proc.state = WAITING;
             msg.proc.remainingTime = runTime[currentP];
+            //priority decision
+            if(algorithm == SJF) msg.proc.priority = runTime[currentP];
+            else if (algorithm == HPF) msg.proc.priority = priority[currentP];
+            else if(algorithm == RR) msg.proc.priority = 1;     //constant priority ==> works as regular queue
 
             
             send_msg = msgsnd(msgid, &msg, sizeof(msg.proc), !IPC_NOWAIT);
