@@ -72,12 +72,43 @@ int main(int argc, char *argv[])
     //scheduler forking (Conditions of the different algorithms)
     int scheduler_pid = fork();
     if (scheduler_pid == 0){
-        char buffer1[20];
-        sprintf(buffer1, "%d", pCount);
-        argv[1] = buffer1;
+        if (algorithm == SJF)
+        {
+            char buffer1[20];
+            sprintf(buffer1, "%d", pCount);
+            argv[1] = buffer1;
 
-        if (execv("./scheduler.out", argv) == -1)
-            perror("failed to execv");
+            if (execv("./scheduler_SJF.out", argv) == -1)
+                perror("failed to execv");
+        }
+        else if (algorithm == HPF)
+        {
+            char buffer1[20];
+            sprintf(buffer1, "%d", pCount);
+            argv[1] = buffer1;
+
+            if (execv("./scheduler_HPF.out", argv) == -1)
+                perror("failed to execv");
+        }
+        else if (algorithm == RR)
+        {
+            char buffer1[20];
+            sprintf(buffer1, "%d", pCount);
+            argv[1] = buffer1;
+
+            if (execv("./scheduler_RR.out", argv) == -1)
+                perror("failed to execv");
+        }
+        else if (algorithm == MLFL)
+        {
+            char buffer1[20];
+            sprintf(buffer1, "%d", pCount);
+            argv[1] = buffer1;
+
+            if (execv("./scheduler_MLFL.out", argv) == -1)
+                perror("failed to execv");
+        }
+        
     }
 
     key_t key = ftok("./clk.c", 'Z');
@@ -105,7 +136,10 @@ int main(int argc, char *argv[])
             msg.proc.processId = id[currentP];
             msg.proc.arrivalTime = arrTime[currentP];
             msg.proc.runTime = runTime[currentP];
-            msg.proc.priority = runTime[currentP];
+            msg.proc.priority = priority[currentP];
+            msg.proc.state = WAITING;
+            msg.proc.remainingTime = runTime[currentP];
+
             
             send_msg = msgsnd(msgid, &msg, sizeof(msg.proc), !IPC_NOWAIT);
 

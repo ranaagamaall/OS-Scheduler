@@ -3,18 +3,37 @@
 /* Modify this file as needed*/
 int remainingTime;
 int startclk;
+int sleep_time = 0;
+int runTime;
+int wait_time = 0; 
+
+// Overwriting the SIGTSTP
+void stopProcess(int signum){
+    sleep_time = getClk();
+    raise(SIGSTOP);
+    signal(SIGTSTP,stopProcess);
+}
+
+// Overwriting the SIGCONT
+void resumeProcess(int signum){
+    wait_time += getClk() - sleep_time;
+    signal(SIGCONT,resumeProcess);
+}
 
 int main(int agrc, char *argv[])
 {
     initClk();
-
-    //TODO The process needs to get the remaining time from somewhere
-    //remainingtime = ??;
-    remainingTime = atoi(argv[1]);
-    //printf("I am the proccess file & The running time is %d\n", remainingTime);
+    
+    signal(SIGTSTP,stopProcess);
+    signal(SIGCONT,resumeProcess);
+    runTime = atoi(argv[1]);
+    remainingTime = runTime;
     
     startclk=getClk();
-    while (getClk() < startclk + remainingTime);
+    while (remainingTime > 0)
+    {
+        remainingTime = runTime - (getClk() - startclk - wait_time);
+    }
     //destroyClk(false);
 
     return 0;

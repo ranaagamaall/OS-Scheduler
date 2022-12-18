@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
     }
 
     utilization=((float)sumRuntime/(float)Lfinish)*100;
-    perfptr = fopen("Scheduler.perf", "w");
+    perfptr = fopen("Scheduler_SJF.perf", "w");
     fprintf(perfptr,"CPU utilization = %0.2f%%Avg\n",utilization);
     fprintf(perfptr,"WTA=%.2f\n",(float)sumWTA/(float)pCount);
     fprintf(perfptr,"Average waiting=%.2f\n",(float)sumWaitingtime/(float)pCount);

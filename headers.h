@@ -74,8 +74,16 @@ struct msgbuffer
 };
 
 
-enum ProcessStatus{
+enum ProcessState{
 WAITING,
 RUNNING, 
 FINISHED, 
 PREEMPTED};
+
+enum SchedulingAlgorithm{
+    NONE,
+    SJF,
+    HPF,
+    RR,
+    MLFL
+};
