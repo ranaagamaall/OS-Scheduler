@@ -17,13 +17,6 @@ typedef short bool;
 #define true 1
 #define false 0
 
-//algorithms definitions
-#define SJF 1
-#define HPF 2
-#define RR 3
-#define MLFL 4
-
-
 
 #define SHKEY 300
 

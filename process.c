@@ -10,6 +10,7 @@ int wait_time = 0;
 // Overwriting the SIGTSTP
 void stopProcess(int signum){
     sleep_time = getClk();
+    printf("wa2aaaft\n");
     raise(SIGSTOP);
     signal(SIGTSTP,stopProcess);
 }

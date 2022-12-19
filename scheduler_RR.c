@@ -60,18 +60,20 @@ int main(int argc, char *argv[])
             }
         }while(rec_val != -1);       //handle if more than 1 message arrive at the same time
 
+
+        printf("recieved a messege");
         int nextTime = getClk();
 
-        if(nextTime > time){        //execution every second
+        //execution every second
+        if(nextTime > time){ 
+            printf("da5alt\n");
             time = getClk();
 
-            //insert any stopped process
-            if(CurrentProcess->state == STOPPED){  
-                enqueue(&ReadyQueue, *CurrentProcess);
-            }
             //peek 
             if(isEmpty_Queue(&ReadyQueue) == 0){
                 data = peek_Queue(&ReadyQueue);
+                CurrentProcess = &data;
+                dequeue(&ReadyQueue);
             }
 
 
@@ -79,9 +81,7 @@ int main(int argc, char *argv[])
 
             if (data.state == WAITING)  //never executed before ==> check status = waiting instead of null
             {
-                CurrentProcess = &data;
                 CurrentProcess->state = RUNNING;
-                dequeue(&ReadyQueue);
                 CurrentProcess->startTime = getClk();
                 CurrentProcess->waitingTime = getClk() - CurrentProcess->arrivalTime;
                 CurrentProcess->remainingTime = CurrentProcess->runTime;
@@ -98,8 +98,8 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    printf("At time %d process %d started arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->runTime, CurrentProcess->waitingTime);
-                    fprintf(fptr,"At time %d process %d started arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->runTime, CurrentProcess->waitingTime);
+                    printf("At time %d process %d started arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+                    fprintf(fptr,"At time %d process %d started arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 }
             
             }
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
             //process execution
             if(CurrentProcess->remainingTime > quantum){
                 CurrentProcess->remainingTime -= quantum;
-                sleep(quantum);
+                printf("mark\n");
                 kill(CurrentProcess->PID, SIGSTOP);
                 CurrentProcess->state = STOPPED;
                 printf("At time %d process %d stopped arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->runTime, CurrentProcess->waitingTime);
@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
                 sleep(CurrentProcess->remainingTime);
                 CurrentProcess->state = FINISHED;
                 pfinished++;
+                enqueue(&ReadyQueue, *CurrentProcess);
             }
 
     } 
