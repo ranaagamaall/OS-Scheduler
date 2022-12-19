@@ -10,6 +10,7 @@ typedef struct process
 
     int waitingTime;
     int remainingTime;
+    int contextSwitchTime;
 
     int startTime;
     int finishTime;
@@ -29,6 +30,7 @@ process initializeProcess(
     p.state=0;
 
     p.waitingTime = 0;
+    p.contextSwitchTime = -1;
     p.finishTime = -1;
     p.startTime = -1;
     return p;
@@ -47,6 +49,7 @@ void initializeProcessPointer(
 
     p->state=0;
     p->waitingTime = 0;
+    p->contextSwitchTime = -1;
     p->finishTime = -1;
     p->startTime = -1;
 }
