@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
             if(algorithm == SJF) msg.proc.priority = runTime[currentP];
             else if (algorithm == HPF) msg.proc.priority = priority[currentP];
             else if(algorithm == RR) msg.proc.priority = 1;     //constant priority ==> works as regular queue
-
+            else if (algorithm == MLFL) msg.proc.priority = priority[currentP];
             
             send_msg = msgsnd(msgid, &msg, sizeof(msg.proc), !IPC_NOWAIT);
 
