@@ -88,7 +88,6 @@ int main(int argc, char *argv[])
         }
         else if (algorithm == RR)
         {
-            printf("Round Robin arrived \n");
             sprintf(buffer2, "%d", quantum);
             argv[2] = buffer2;
 

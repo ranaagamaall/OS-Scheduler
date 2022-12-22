@@ -24,7 +24,7 @@ void resumeProcess(int signum){
 int main(int agrc, char *argv[])
 {
     initClk();
-    
+
     signal(SIGTSTP,stopProcess);
     signal(SIGCONT,resumeProcess);
     runTime = atoi(argv[1]);
