@@ -96,6 +96,8 @@ int main(int argc, char *argv[])
         }
         else if (algorithm == MLFL)
         {
+            sprintf(buffer2, "%d", quantum);
+            argv[2] = buffer2;
             if (execv("./scheduler_MLFL.out", argv) == -1)
                 perror("failed to execv");
         }
@@ -140,7 +142,7 @@ int main(int argc, char *argv[])
 
             if (send_msg == 0)
             {
-                //printf ("At time %d Sent messege: Id:%d arrival_time=%d run_time=%d priority=%d\n",x,id[currentP],arrTime[currentP], runTime[currentP],priority[currentP] );
+                //printf ("At time %d Sent message: Id:%d arrival_time=%d run_time=%d priority=%d\n",x,id[currentP],arrTime[currentP], runTime[currentP],priority[currentP] );
             }
             // 2. Increment the current process index.
             currentP++;
