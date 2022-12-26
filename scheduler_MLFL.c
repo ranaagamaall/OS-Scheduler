@@ -20,10 +20,6 @@ int sumWaitingtime=0;
 float sumWTA;
 int Lfinish;
 int startclk;
-int arrivalTimeOfLonelyProc;  //arrival time of the process which when received there were no any process in the 11 priority level queues, used to make the execution in multiple times of the quantum
-//Note: the MLFL scheduler is executed every second but we want the RR to be only executed in multiple time of the quantum to be able to check the highest priority in this time
-//Corner case: when a process arrive at time within the quantum and another higher priority arrive at the beginning of the next quantum immediately
-//without executing RR at multiple times of the quantum the lower priority process will be executed first
 
 //TODO: lama process tegy mn bara tehotaha abl el process el 3aleha el dor
 int main(int argc, char *argv[])
@@ -70,19 +66,11 @@ int main(int argc, char *argv[])
         }
         if (rec_val != -1)
         {
-            if (isEmpty_Queue(&priorityLevel[0])==1 && isEmpty_Queue(&priorityLevel[1])==1 
-            && isEmpty_Queue(&priorityLevel[2])==1 && isEmpty_Queue(&priorityLevel[3])==1 && isEmpty_Queue(&priorityLevel[4])==1 
-            && isEmpty_Queue(&priorityLevel[5])==1 && isEmpty_Queue(&priorityLevel[6])==1 && isEmpty_Queue(&priorityLevel[7])==1 
-            && isEmpty_Queue(&priorityLevel[8])==1 && isEmpty_Queue(&priorityLevel[9])==1 && isEmpty_Queue(&priorityLevel[10])==1)
-            {
-                arrivalTimeOfLonelyProc=getClk();
-            }
-            
             if (msg.proc.priority < i)
             {
                 i=msg.proc.priority;    //we must set the i by the highest priority to start with
             }
-            //printf("%d\n",i);
+            printf("%d hena in time %d\n",msg.proc.processId,getClk());
             if (msg.proc.priority==0)
             {
                 enqueue(&priorityLevel[0], msg.proc);
@@ -134,85 +122,114 @@ int main(int argc, char *argv[])
         //execution every second
         if(nextTime > time){ 
             time = getClk();
-            if ((time-arrivalTimeOfLonelyProc)%quantum == 0)  //if (time-arrivalTimeOfLonelyProc) divided by the quantum == integer num, then it's a multiple time of the quantum 
+            if (time == 25)
+                printf("%d in 25\n",i);
+            if (time == 26)
+                printf("%d in 26\n",i);
+            if (time == 27)
+                printf("%d in 27\n",i);
+            if (time == 28)
+                printf("%d in 28\n",i);
+            //peek 
+            if(isEmpty_Queue(&priorityLevel[i]) == 0){
+                data = peek_Queue(&priorityLevel[i]);
+                CurrentProcess = &data;
+                dequeue(&priorityLevel[i]);
+            }
+
+
+            int pid, status;
+
+            if (data.state == WAITING)  //never executed before ==> check status = waiting instead of null
             {
-                
-                //peek 
-                if(isEmpty_Queue(&priorityLevel[i]) == 0){
-                    data = peek_Queue(&priorityLevel[i]);
-                    CurrentProcess = &data;
-                    dequeue(&priorityLevel[i]);
-                }
-
-
-                int pid, status;
-
-                if (data.state == WAITING)  //never executed before ==> check status = waiting instead of null
+                char buffer1[5];
+                sprintf(buffer1, "%d", CurrentProcess->runTime); // pass the remaining time
+                CurrentProcess->startTime = getClk(); // start time of the process added to the node
+                CurrentProcess->contextSwitchTime = getClk();
+                int pid = fork();                     // fork the process
+                CurrentProcess->state = RUNNING;
+                if (pid == 0)
                 {
-                    char buffer1[5];
-                    sprintf(buffer1, "%d", CurrentProcess->runTime); // pass the remaining time
-                    CurrentProcess->startTime = getClk(); // start time of the process added to the node
-                    CurrentProcess->contextSwitchTime = getClk();
-                    int pid = fork();                     // fork the process
-                    CurrentProcess->state = RUNNING;
-                    if (pid == 0)
-                    {
-                        char *ar[] = {"./process.out", buffer1, NULL, 0};
-                        execve(ar[0], &ar[0], NULL);
-                    }
-                    else
-                    {
-                        CurrentProcess->waitingTime = CurrentProcess->startTime - CurrentProcess->arrivalTime;
-                        printf("At time %d process %d started arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
-                        fprintf(fptr,"At time %d process %d started arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
-                    }
-                
+                    char *ar[] = {"./process.out", buffer1, NULL, 0};
+                    execve(ar[0], &ar[0], NULL);
                 }
-                //if forked before ==> do not fork ==> signal continue
-                else if(data.state == STOPPED){ 
-                    CurrentProcess->state = RUNNING;
-                    kill(CurrentProcess->PID, SIGCONT);
-                    printf("At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
-                    fprintf(fptr,"At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+                else
+                {
+                    CurrentProcess->waitingTime = CurrentProcess->startTime - CurrentProcess->arrivalTime;
+                    printf("At time %d process %d started arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+                    fprintf(fptr,"At time %d process %d started arr %d total %d remain %d wait %d \n", CurrentProcess->startTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 }
+            
+            }
+            //if forked before ==> do not fork ==> signal continue
+            else if(data.state == STOPPED){ 
+                CurrentProcess->waitingTime =  CurrentProcess->waitingTime + getClk() - CurrentProcess->contextSwitchTime;
+                CurrentProcess->contextSwitchTime = getClk();
+                CurrentProcess->state = RUNNING;
+                kill(CurrentProcess->PID, SIGCONT);
+                printf("At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+                fprintf(fptr,"At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+            }
 
-                //process execution
-                if(CurrentProcess->remainingTime > quantum){
-                    CurrentProcess->remainingTime -= quantum;
-                    kill(CurrentProcess->PID, SIGTSTP);
-                    startclk=getClk();
-                    while(getClk()<startclk+quantum){}  //Sleep
-                    CurrentProcess->state = STOPPED;
-                    printf("At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
-                    fprintf(fptr,"At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
-                    if (i<10)
-                        enqueue(&priorityLevel[i+1], *CurrentProcess);
-                    else
-                        enqueue(&priorityLevel[i], *CurrentProcess);
-                    
-                    if (isEmpty_Queue(&priorityLevel[i])==1 && i<10)
-                        i++;   //move to the next priority level queue and perform RR on it
-                    
-                }else if(CurrentProcess->remainingTime <= quantum){
-                    CurrentProcess->remainingTime =0;
-                    startclk=getClk();
-                    CurrentProcess->finishTime = getClk();
-                    while(getClk()<startclk+quantum){}  //Sleep
-                    CurrentProcess->state = FINISHED;
-                    printf("At time %d process %d finished arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
-                    TA = CurrentProcess->finishTime - CurrentProcess->arrivalTime;
-                    WTA = (float)TA / (float)CurrentProcess->runTime;
-                    fprintf(fptr,"At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
-                    pfinished++;
-                    if (isEmpty_Queue(&priorityLevel[i])==1 && i<10)
-                        i++; //Corner case, when a process finishes and the queue is empty we must proceed to the next priority level queue
-                            // note: if process finishes but queue is not empty we should continue in the same queue normally to perform RR on the rest processes in this queue
-                    
-                    sumRuntime+=CurrentProcess->runTime;
-                    sumWaitingtime+=CurrentProcess->waitingTime;
-                    sumWTA+=WTA;
-                    Lfinish=CurrentProcess->finishTime;
+            //process execution
+            if(CurrentProcess->remainingTime > quantum)
+            {
+                CurrentProcess->remainingTime -= quantum;
+                kill(CurrentProcess->PID, SIGTSTP);
+                startclk=getClk();
+                while(getClk()<startclk+quantum){}  //Sleep
+                CurrentProcess->state = STOPPED;
+                CurrentProcess->contextSwitchTime = getClk();
+                printf("At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+                fprintf(fptr,"At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+                if (i<10)
+                    enqueue(&priorityLevel[i+1], *CurrentProcess);
+                else
+                    enqueue(&priorityLevel[i], *CurrentProcess);
+                
+                if (isEmpty_Queue(&priorityLevel[i])==1 && i<10)
+                {
+                    for (int j = 0; j < 11; j++)
+                    {
+                        if (isEmpty_Queue(&priorityLevel[j])!=1) //if not empty
+                        {
+                            i=j;
+                            break;   
+                        }
+                    }
                 }
+                    //i++;   //move to the next priority level queue and perform RR on it
+                
+            }else if(CurrentProcess->remainingTime <= quantum){
+                CurrentProcess->remainingTime =0;
+                startclk=getClk();
+                while(getClk()<startclk+quantum){}  //Sleep
+                CurrentProcess->state = FINISHED;
+                CurrentProcess->finishTime = getClk();
+                TA = CurrentProcess->finishTime - CurrentProcess->arrivalTime;
+                WTA = (float)TA / (float)CurrentProcess->runTime;
+                printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
+                fprintf(fptr,"At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
+                pfinished++;
+                if (isEmpty_Queue(&priorityLevel[i])==1 && i<10)
+                {
+                    for (int j = 0; j < 11; j++)
+                    {
+                        if (isEmpty_Queue(&priorityLevel[j])!=1) //if not empty
+                        {
+                            i=j;
+                            //printf("el i = %d\n",i);
+                            break;   
+                        }
+                    }
+                }
+                    //i++; //Corner case, when a process finishes and the queue is empty we must proceed to the next priority level queue
+                        // note: if process finishes but queue is not empty we should continue in the same queue normally to perform RR on the rest processes in this queue
+                
+                sumRuntime+=CurrentProcess->runTime;
+                sumWaitingtime+=CurrentProcess->waitingTime;
+                sumWTA+=WTA;
+                Lfinish=CurrentProcess->finishTime;
             }
             
         }
