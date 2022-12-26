@@ -20,6 +20,7 @@ int sumWaitingtime=0;
 float sumWTA;
 int Lfinish;
 int startclk;
+int oldPriorityLevel = 10;
 
 //TODO: lama process tegy mn bara tehotaha abl el process el 3aleha el dor
 int main(int argc, char *argv[])
@@ -55,81 +56,109 @@ int main(int argc, char *argv[])
     int i=10;  //Must be initialized by 10 not 0 bec it is set later by the highest priority(a small value) 
     while(pCount!=pfinished)    
     {
-        rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, IPC_NOWAIT); // shouldn't wait for msg
-        if(  rec_val == -1 && isEmpty_Queue(&priorityLevel[0])==1 && isEmpty_Queue(&priorityLevel[1])==1 
-            && isEmpty_Queue(&priorityLevel[2])==1 && isEmpty_Queue(&priorityLevel[3])==1 && isEmpty_Queue(&priorityLevel[4])==1 
-            && isEmpty_Queue(&priorityLevel[5])==1 && isEmpty_Queue(&priorityLevel[6])==1 && isEmpty_Queue(&priorityLevel[7])==1 
-            && isEmpty_Queue(&priorityLevel[8])==1 && isEmpty_Queue(&priorityLevel[9])==1 && isEmpty_Queue(&priorityLevel[10])==1 )
-        {
-            rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, !IPC_NOWAIT); 
-            // waits if rec_val =-1 & all priority levels queues are empty
-        }
-        if (rec_val != -1)
-        {
-            if (msg.proc.priority < i)
+        do{
+            rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, IPC_NOWAIT); // shouldn't wait for msg
+            if( rec_val == -1 && isEmpty_Queue(&priorityLevel[0])==1 && isEmpty_Queue(&priorityLevel[1])==1 
+                && isEmpty_Queue(&priorityLevel[2])==1 && isEmpty_Queue(&priorityLevel[3])==1 && isEmpty_Queue(&priorityLevel[4])==1 
+                && isEmpty_Queue(&priorityLevel[5])==1 && isEmpty_Queue(&priorityLevel[6])==1 && isEmpty_Queue(&priorityLevel[7])==1 
+                && isEmpty_Queue(&priorityLevel[8])==1 && isEmpty_Queue(&priorityLevel[9])==1 && isEmpty_Queue(&priorityLevel[10])==1
+                && CurrentProcess == NULL)
             {
-                i=msg.proc.priority;    //we must set the i by the highest priority to start with
+                rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, !IPC_NOWAIT); 
+                // waits if rec_val =-1 & all priority levels queues are empty
             }
-            printf("%d hena in time %d\n",msg.proc.processId,getClk());
-            if (msg.proc.priority==0)
+            if (rec_val != -1)
             {
-                enqueue(&priorityLevel[0], msg.proc);
+                if (msg.proc.priority < i)
+                {
+                    i=msg.proc.priority;    //we must set the i by the highest priority to start with
+                }
+                //printf("%d hena in time %d\n",msg.proc.processId,getClk());
+                if (msg.proc.priority==0)
+                {
+                    enqueue(&priorityLevel[0], msg.proc);
+                }
+                else if (msg.proc.priority==1)
+                {
+                    enqueue(&priorityLevel[1], msg.proc);
+                }
+                else if (msg.proc.priority==2)
+                {
+                    enqueue(&priorityLevel[2], msg.proc);
+                }
+                else if (msg.proc.priority==3)
+                {
+                    enqueue(&priorityLevel[3], msg.proc);
+                }
+                else if (msg.proc.priority==4)
+                {
+                    enqueue(&priorityLevel[4], msg.proc);
+                }
+                else if (msg.proc.priority==5)
+                {
+                    enqueue(&priorityLevel[5], msg.proc);
+                }
+                else if (msg.proc.priority==6)
+                {
+                    enqueue(&priorityLevel[6], msg.proc);
+                }
+                else if (msg.proc.priority==7)
+                {
+                    enqueue(&priorityLevel[7], msg.proc);
+                }
+                else if (msg.proc.priority==8)
+                {
+                    enqueue(&priorityLevel[8], msg.proc);
+                }
+                else if (msg.proc.priority==9)
+                {
+                    enqueue(&priorityLevel[9], msg.proc);
+                }
+                else if (msg.proc.priority==10)
+                {
+                    enqueue(&priorityLevel[10], msg.proc);
+                }
             }
-            else if (msg.proc.priority==1)
-            {
-                enqueue(&priorityLevel[1], msg.proc);
-            }
-            else if (msg.proc.priority==2)
-            {
-                enqueue(&priorityLevel[2], msg.proc);
-            }
-            else if (msg.proc.priority==3)
-            {
-                enqueue(&priorityLevel[3], msg.proc);
-            }
-            else if (msg.proc.priority==4)
-            {
-                enqueue(&priorityLevel[4], msg.proc);
-            }
-            else if (msg.proc.priority==5)
-            {
-                enqueue(&priorityLevel[5], msg.proc);
-            }
-            else if (msg.proc.priority==6)
-            {
-                enqueue(&priorityLevel[6], msg.proc);
-            }
-            else if (msg.proc.priority==7)
-            {
-                enqueue(&priorityLevel[7], msg.proc);
-            }
-            else if (msg.proc.priority==8)
-            {
-                enqueue(&priorityLevel[8], msg.proc);
-            }
-            else if (msg.proc.priority==9)
-            {
-                enqueue(&priorityLevel[9], msg.proc);
-            }
-            else if (msg.proc.priority==10)
-            {
-                enqueue(&priorityLevel[10], msg.proc);
-            }
-        }
+
+        }while(rec_val != -1);
+        
 
         int nextTime = getClk();
 
         //execution every second
         if(nextTime > time){ 
             time = getClk();
-            if (time == 25)
-                printf("%d in 25\n",i);
-            if (time == 26)
-                printf("%d in 26\n",i);
-            if (time == 27)
-                printf("%d in 27\n",i);
-            if (time == 28)
-                printf("%d in 28\n",i);
+            if(CurrentProcess != NULL && CurrentProcess->state == STOPPED)
+            {
+                if (oldPriorityLevel < 10)
+                {
+                    //printf("Current process is: %d and priority level is: %d and real priority is: %d\n", CurrentProcess->processId, i, CurrentProcess->priority);
+                    enqueue(&priorityLevel[oldPriorityLevel + 1], *CurrentProcess);
+                }   
+                else
+                    enqueue(&priorityLevel[oldPriorityLevel], *CurrentProcess);
+            }
+
+            for (int j = 0; j < 11; j++)
+            {
+                if (isEmpty_Queue(&priorityLevel[j])!=1) //if not empty
+                {
+                    i=j;
+                    break;   
+                }
+            }
+            // if (isEmpty_Queue(&priorityLevel[oldPriorityLevel])==1 && i<10)
+            // {
+            //     for (int j = 0; j < 11; j++)
+            //     {
+            //         if (isEmpty_Queue(&priorityLevel[j])!=1) //if not empty
+            //         {
+            //             i=j;
+            //             break;   
+            //         }
+            //     }
+            // }
+                
             //peek 
             if(isEmpty_Queue(&priorityLevel[i]) == 0){
                 data = peek_Queue(&priorityLevel[i]);
@@ -179,31 +208,17 @@ int main(int argc, char *argv[])
                 startclk=getClk();
                 while(getClk()<startclk+quantum){}  //Sleep
                 CurrentProcess->state = STOPPED;
+                 oldPriorityLevel = i;
                 CurrentProcess->contextSwitchTime = getClk();
                 printf("At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 fprintf(fptr,"At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
-                if (i<10)
-                    enqueue(&priorityLevel[i+1], *CurrentProcess);
-                else
-                    enqueue(&priorityLevel[i], *CurrentProcess);
                 
-                if (isEmpty_Queue(&priorityLevel[i])==1 && i<10)
-                {
-                    for (int j = 0; j < 11; j++)
-                    {
-                        if (isEmpty_Queue(&priorityLevel[j])!=1) //if not empty
-                        {
-                            i=j;
-                            break;   
-                        }
-                    }
-                }
                     //i++;   //move to the next priority level queue and perform RR on it
                 
             }else if(CurrentProcess->remainingTime <= quantum){
-                CurrentProcess->remainingTime =0;
                 startclk=getClk();
-                while(getClk()<startclk+quantum){}  //Sleep
+                while(getClk()<startclk+CurrentProcess->remainingTime){}  //Sleep
+                CurrentProcess->remainingTime =0;
                 CurrentProcess->state = FINISHED;
                 CurrentProcess->finishTime = getClk();
                 TA = CurrentProcess->finishTime - CurrentProcess->arrivalTime;
@@ -211,6 +226,8 @@ int main(int argc, char *argv[])
                 printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
                 fprintf(fptr,"At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
                 pfinished++;
+                //printf("Priority level is: %d\n", i);
+                //printqueue(&priorityLevel[i]);
                 if (isEmpty_Queue(&priorityLevel[i])==1 && i<10)
                 {
                     for (int j = 0; j < 11; j++)
@@ -230,6 +247,7 @@ int main(int argc, char *argv[])
                 sumWaitingtime+=CurrentProcess->waitingTime;
                 sumWTA+=WTA;
                 Lfinish=CurrentProcess->finishTime;
+                CurrentProcess = NULL; 
             }
             
         }

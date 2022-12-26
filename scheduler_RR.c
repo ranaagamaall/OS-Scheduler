@@ -50,23 +50,30 @@ int main(int argc, char *argv[])
 
     while(pCount!=pfinished)    
     {
+        do
+        {
+            rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, IPC_NOWAIT); // shouldn't wait for msg
+            if(rec_val == -1 && isEmpty_Queue(&ReadyQueue) == 1 && CurrentProcess == NULL)
+            {
+                rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, !IPC_NOWAIT); // waits
+            }
+            if (rec_val != -1)
+            {
+                enqueue(&ReadyQueue, msg.proc);
+            }
+        } while (rec_val != -1);
         
-        rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, IPC_NOWAIT); // shouldn't wait for msg
-        if(rec_val == -1 && isEmpty_Queue(&ReadyQueue) == 1)
-        {
-            rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, !IPC_NOWAIT); // waits
-        }
-        if (rec_val != -1)
-        {
-            enqueue(&ReadyQueue, msg.proc);
-        }
+        
 
         int nextTime = getClk();
 
         //execution every second
-        if(nextTime > time){ 
+        if(nextTime > time)
+        { 
             time = getClk();
-
+            if(CurrentProcess != NULL && CurrentProcess->state == STOPPED)
+                enqueue(&ReadyQueue, *CurrentProcess);
+            
             //peek 
             if(isEmpty_Queue(&ReadyQueue) == 0){
                 data = peek_Queue(&ReadyQueue);
@@ -100,6 +107,8 @@ int main(int argc, char *argv[])
             }
             //if forked before ==> do not fork ==> signal continue
             else if(data.state == STOPPED){ 
+                CurrentProcess->waitingTime =  CurrentProcess->waitingTime + getClk() - CurrentProcess->contextSwitchTime;
+                CurrentProcess->contextSwitchTime = getClk();
                 CurrentProcess->state = RUNNING;
                 kill(CurrentProcess->PID, SIGCONT);
                 printf("At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
@@ -113,18 +122,19 @@ int main(int argc, char *argv[])
                 startclk=getClk();
                 while(getClk()<startclk+quantum){}
                 CurrentProcess->state = STOPPED;
+                CurrentProcess->contextSwitchTime = getClk();
                 printf("At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 fprintf(fptr,"At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
-                enqueue(&ReadyQueue, *CurrentProcess);
+                
             }else if(CurrentProcess->remainingTime <= quantum){
-                CurrentProcess->remainingTime =0;
                 startclk=getClk();
+                while(getClk()<startclk+CurrentProcess->remainingTime){}
+                CurrentProcess->remainingTime =0;
                 CurrentProcess->finishTime = getClk();
-                while(getClk()<startclk+quantum){}
                 CurrentProcess->state = FINISHED;
-                printf("At time %d process %d finished arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 TA = CurrentProcess->finishTime - CurrentProcess->arrivalTime;
                 WTA = (float)TA / (float)CurrentProcess->runTime;
+                printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
                 fprintf(fptr,"At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
                 pfinished++;
 
@@ -132,6 +142,7 @@ int main(int argc, char *argv[])
                 sumWaitingtime+=CurrentProcess->waitingTime;
                 sumWTA+=WTA;
                 Lfinish=CurrentProcess->finishTime;
+                CurrentProcess = NULL;
             }
         }
     } 
