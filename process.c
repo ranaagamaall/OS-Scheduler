@@ -23,9 +23,6 @@ void resumeProcess(int signum){
 int main(int agrc, char *argv[])
 {
     initClk();
-
-    signal(SIGTSTP,stopProcess);
-    signal(SIGCONT,resumeProcess);
     runTime = atoi(argv[1]);
     remainingTime = runTime;
     
@@ -34,7 +31,10 @@ int main(int agrc, char *argv[])
     {
         remainingTime = runTime - (getClk() - startclk - wait_time);
     }
-    //destroyClk(false);
+
+    signal(SIGTSTP,stopProcess);
+    signal(SIGCONT,resumeProcess);
+    destroyClk(false);
 
     return 0;
 }

@@ -37,13 +37,11 @@ int main(int argc, char *argv[])
     }
 
     pCount = atoi(argv[1]);
-
-    // int time;
-    // time = getClk();
     int rec_val;
 
     fptr = fopen("Scheduler_SJF.log", "w");
     fprintf(fptr, "#At time x process y state arr w total z remain y wait k \n");
+    printf("#At time x process y state arr w total z remain y wait k \n");
 
     while(pCount!=pfinished)
     {
@@ -86,12 +84,6 @@ int main(int argc, char *argv[])
     fprintf(perfptr,"WTA=%.2f\n",(float)sumWTA/(float)pCount);
     fprintf(perfptr,"Average waiting=%.2f\n",(float)sumWaitingtime/(float)pCount);
 
-    //whileloop(PCount)
-        //2a2ra mn elmessege queue (Weslet f ma3adha) 
-        //enque priority 
-        //peek => Fork elproccess(execv remaining time/quantum lw feeh(quantum=remaining time)) => dequeue   
-    //destroyClk(true);
-
     destroyClk(true);
     msgctl(msgid, IPC_RMID, (struct msqid_ds *)0);
     return 0;
@@ -105,6 +97,7 @@ void childHandler(int signum)
     TA = CurrentProcess->finishTime - CurrentProcess->arrivalTime;
     WTA = (float)TA / (float)CurrentProcess->runTime;
     fprintf(fptr,"At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", CurrentProcess->finishTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->runTime, CurrentProcess->waitingTime, TA, WTA);
+    printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", CurrentProcess->finishTime, CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->runTime, CurrentProcess->waitingTime, TA, WTA);
     CurrentProcess->state = FINISHED;
     pfinished++;
 

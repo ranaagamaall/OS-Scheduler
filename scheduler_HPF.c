@@ -21,7 +21,6 @@ int Lfinish=0;
 
 int main(int argc, char *argv[])
 {
-    printf("I am the HPF\n");
     initClk();
     signal(SIGINT, schedulerHandler);
     ReadyQueue = createQueue();
@@ -57,11 +56,7 @@ int main(int argc, char *argv[])
         
         if (rec_val != -1)
         {
-
             enqueue(&ReadyQueue, msg.proc);
-            //TotalExecution += msg.proc.executionTime;
-            printf("process: %d received at: %d\n", msg.proc.processId, getClk());
-            //printqueue(&ReadyQueue);
         }
 
         int pid, status;
