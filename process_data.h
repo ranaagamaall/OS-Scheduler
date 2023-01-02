@@ -4,6 +4,7 @@ typedef struct process
     int priority;
     int processId;
     int arrivalTime;
+    int size;
     pid_t PID;
 
     int state;
@@ -14,11 +15,13 @@ typedef struct process
 
     int startTime;
     int finishTime;
+    int memory;
+    int mem_start;
 } process;
 
 process initializeProcess(
     int runtime, int priority,
-    int processId, int arrivalTime)
+    int processId, int arrivalTime, int size)
 {
     process p;
     p.runTime = runtime;
@@ -26,6 +29,7 @@ process initializeProcess(
     p.processId = processId;
     p.arrivalTime = arrivalTime;
     p.remainingTime = runtime; //we will decrement from it later
+    p.size = size;
 
     p.state=0;
 
@@ -39,13 +43,14 @@ process initializeProcess(
 void initializeProcessPointer(
     process *p,
     int runtime, int priority,
-    int processId, int arrivalTime)
+    int processId, int arrivalTime, int size)
 {
     p->runTime = runtime;
     p->priority = priority;
     p->processId = processId;
     p->arrivalTime = arrivalTime;
     p->remainingTime = runtime;
+    p->size = size;
 
     p->state=0;
     p->waitingTime = 0;

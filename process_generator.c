@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
         pCount ++;
     }
 
-    int id[pCount], arrTime[pCount], runTime[pCount], priority[pCount];
+    int id[pCount], arrTime[pCount], runTime[pCount], priority[pCount], memories[pCount];
     fclose(file);
 
 
@@ -47,6 +47,9 @@ int main(int argc, char *argv[])
 
         fscanf(file, "%d", &buf);
         priority[i] = buf;
+
+        fscanf(file, "%d", &buf);
+        memories[i] = buf;
     }
 
     //For Checking the input file 
@@ -129,6 +132,8 @@ int main(int argc, char *argv[])
             msg.proc.processId = id[currentP];
             msg.proc.arrivalTime = arrTime[currentP];
             msg.proc.runTime = runTime[currentP];
+            msg.proc.size = pCount;
+            msg.proc.memory=memories[currentP];
             
             msg.proc.state = WAITING;
             msg.proc.remainingTime = runTime[currentP];

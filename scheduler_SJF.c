@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
 
     pCount = atoi(argv[1]);
     int rec_val;
+    
 
     fptr = fopen("Scheduler_SJF.log", "w");
     fprintf(fptr, "#At time x process y state arr w total z remain y wait k \n");
@@ -51,16 +52,18 @@ int main(int argc, char *argv[])
             enqueue(&ReadyQueue, msg.proc);
         }
 
-
+        //execution every second
+    
         int pid, status;
 
         if (CurrentProcess == NULL && isEmpty_Queue(&ReadyQueue) == 0)
         {
             data = peek_Queue(&ReadyQueue);
             CurrentProcess = &data;
+            CurrentProcess->startTime = getClk();
             CurrentProcess->state = RUNNING;
             dequeue(&ReadyQueue);
-            CurrentProcess->startTime = getClk();
+            
             CurrentProcess->waitingTime = getClk() - CurrentProcess->arrivalTime;
             pid = fork();
             if (pid == 0)
