@@ -2,10 +2,13 @@
 #include <stdlib.h>
 #include <math.h>
 #define MEM_SIZE 1024
-#define EMPTY 0
-#define HAS_PROCESS 1
-#define HAS_CHILD 2
-#define ROOT 3
+
+enum MemoryState{
+    EMPTY,
+    HAS_PROCESS,
+    HAS_CHILD,
+    ROOT
+};
 
 struct MemNode
 {

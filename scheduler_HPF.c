@@ -22,7 +22,6 @@ int sumRuntime=0;
 int sumWaitingtime=0;
 float sumWTA=0;
 int Lfinish=0;
-int TotalExecution=0;
 
 int main(int argc, char *argv[])
 {
@@ -48,11 +47,10 @@ int main(int argc, char *argv[])
     perfptr = fopen("Scheduler_HPF.perf", "w");
     memfptr = fopen("Memory_HPF.log", "w"); // For Files
     fprintf(fptr, "#At time x process y state arr w total z remain y wait k \n");
+    //printf("#At time x process y state arr w total z remain y wait k \n");
     fprintf(memfptr, "#At time x allocated y bytes for process z from i to j \n");
     printf("#At time x allocated y bytes for process z from i to j \n");
     fflush(fptr);
-    
-
 
     while (pCount!=pfinished)
     {
@@ -69,8 +67,7 @@ int main(int argc, char *argv[])
             msg.proc.mem_start = MemoryStart;
             enqueue(&ReadyQueue, msg.proc);
             int total_size = pow(2, ceil(log2(msg.proc.memory)));
-            TotalExecution += msg.proc.runTime;
-            printf("process: %d received at: %d\n", msg.proc.processId, getClk());
+            //printf("process: %d received at: %d\n", msg.proc.processId, getClk());
             printf("At time %d allocated %d bytes for process %d from %d to %d\n", getClk(), msg.proc.memory, msg.proc.processId, MemoryStart, MemoryStart + total_size);
             fprintf(memfptr, "At time %d allocated %d bytes for process %d from %d to %d\n", getClk(), msg.proc.memory, msg.proc.processId, MemoryStart, MemoryStart + total_size);
         }
@@ -101,7 +98,7 @@ int main(int argc, char *argv[])
                 //printf("It is the first time to run\n");
                 CurrentRunning->waitingTime = CurrentRunning->startTime - CurrentRunning->arrivalTime;
                 fprintf(fptr, "At time  %d  process %d started arr %d total %d remain %d wait %d \n", getClk(), CurrentRunning->processId, CurrentRunning->arrivalTime, CurrentRunning->runTime, CurrentRunning->remainingTime, CurrentRunning->waitingTime);
-                //printf("At time  %d  process %d started arr %d total %d remain %d wait %d \n", getClk(), CurrentRunning->processId, CurrentRunning->arrivalTime, CurrentRunning->runTime, CurrentRunning->remainingTime, CurrentRunning->waitingTime);
+                printf("At time  %d  process %d started arr %d total %d remain %d wait %d \n", getClk(), CurrentRunning->processId, CurrentRunning->arrivalTime, CurrentRunning->runTime, CurrentRunning->remainingTime, CurrentRunning->waitingTime);
                 fflush(fptr);
                 CurrentRunning->PID = pid;
             }
@@ -184,6 +181,7 @@ void schedulerHandler(int signum)
     msgctl(msgid, IPC_RMID, NULL);
     fclose(fptr);
     fclose(perfptr);
+    fclose(memfptr);
     destroyClk(true);
     exit(0);
 }

@@ -4,26 +4,32 @@ void childHandler(int signum);
 void schedulerHandler(int signum);
 
 struct Queue ReadyQueue;
+struct memTree *MemoryTree;
+int MemoryStart;
 int pCount = 0;
 int pfinished =0;
 process *CurrentProcess = NULL;
 process data;
 int msgid;
+
 FILE *fptr; //For the .log file
-int TA;
-float WTA;
 FILE *perfptr; //For the .perf file
-float utilization;
+FILE *memfptr;
+
+int TA=0;
+float WTA=0;
+float utilization=0;
 int sumRuntime=0;
 int sumWaitingtime=0;
-float sumWTA;
-int Lfinish;
+float sumWTA=0;
+int Lfinish=0;
 
 
 int main(int argc, char *argv[])
 {
     initClk();
-    ReadyQueue=createQueue();
+    MemoryTree = create_memTree();
+    ReadyQueue = createQueue();
     signal(SIGCHLD, childHandler);
     signal(SIGINT, schedulerHandler);
 
@@ -41,15 +47,24 @@ int main(int argc, char *argv[])
     
 
     fptr = fopen("Scheduler_SJF.log", "w");
+    memfptr = fopen("Memory_SJF.log", "w");
     fprintf(fptr, "#At time x process y state arr w total z remain y wait k \n");
-    printf("#At time x process y state arr w total z remain y wait k \n");
+    //printf("#At time x process y state arr w total z remain y wait k \n");
+    fprintf(memfptr, "#At time x allocated y bytes for process z from i to j \n");
+    printf("#At time x allocated y bytes for process z from i to j \n");
+
 
     while(pCount!=pfinished)
     {
         rec_val = msgrcv(msgid, &msg, sizeof(msg.proc), 0, !IPC_NOWAIT); // shouldn't wait for msg
         if (rec_val != -1)
         {
+            MemoryStart = allocateProcess(MemoryTree, msg.proc.memory, msg.proc.processId);
+            msg.proc.mem_start = MemoryStart;
             enqueue(&ReadyQueue, msg.proc);
+            int total_size = pow(2, ceil(log2(msg.proc.memory)));
+            fprintf(memfptr, "At time %d allocated %d bytes for process %d from %d to %d\n", getClk(), msg.proc.memory, msg.proc.processId, MemoryStart, MemoryStart + total_size);
+            printf("At time %d allocated %d bytes for process %d from %d to %d\n", getClk(), msg.proc.memory, msg.proc.processId, MemoryStart, MemoryStart + total_size);
         }
 
         //execution every second
@@ -110,7 +125,11 @@ void childHandler(int signum)
     sumWTA+=WTA;
     Lfinish=CurrentProcess->finishTime;
     
-    
+    deallocateProcess(MemoryTree, CurrentProcess->processId);
+    int total_size = pow(2, ceil(log2(CurrentProcess->memory)));
+    fprintf(memfptr, "At time %d freed %d bytes for process %d from %d to %d\n", getClk(), CurrentProcess->memory, CurrentProcess->processId, CurrentProcess->mem_start, CurrentProcess->mem_start + total_size);
+    printf("At time %d freed %d bytes for process %d from %d to %d\n", getClk(), CurrentProcess->memory, CurrentProcess->processId, CurrentProcess->mem_start, CurrentProcess->mem_start + total_size);
+
     CurrentProcess = NULL;
     signal(SIGCHLD, childHandler);
 }
@@ -121,6 +140,7 @@ void schedulerHandler(int signum)
     msgctl(msgid, IPC_RMID, NULL);
     fclose(perfptr);
     fclose(fptr);
+    fclose(memfptr);
     destroyClk(true);
     exit(0);
 }
