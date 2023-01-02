@@ -4,6 +4,8 @@ void childHandler(int signum);
 void schedulerHandler(int signum);
 
 struct Queue priorityLevel[11];
+struct memTree *MemoryTree;
+int MemoryStart;
 int pCount = 0;
 int quantum = 0;
 int pfinished =0;
@@ -14,6 +16,7 @@ FILE *fptr; //For the .log file
 int TA;
 float WTA;
 FILE *perfptr; //For the .perf file
+FILE *memfptr;
 float utilization;
 int sumRuntime=0;
 int sumWaitingtime=0;
@@ -26,6 +29,7 @@ int oldPriorityLevel = 10;
 int main(int argc, char *argv[])
 {
     initClk();
+    MemoryTree = create_memTree();
     for (int i = 0; i <= 10; i++)
     {
         priorityLevel[i]=createQueue();
@@ -50,7 +54,10 @@ int main(int argc, char *argv[])
     int rec_val;
 
     fptr = fopen("Scheduler_MLFL.log", "w");
+    memfptr = fopen("Memory_MLFL.log", "w");
     fprintf(fptr, "#At time x process y state arr w total z remain y wait k \n");
+    fprintf(memfptr, "#At time x allocated y bytes for process z from i to j \n");
+    printf("#At time x allocated y bytes for process z from i to j \n");
 
     //2 processes of priority 0, 2 processes of priority 1, 2 processes of priority 4 (scenario)
     int i=10;  //Must be initialized by 10 not 0 bec it is set later by the highest priority(a small value) 
@@ -69,6 +76,11 @@ int main(int argc, char *argv[])
             }
             if (rec_val != -1)
             {
+                MemoryStart = allocateProcess(MemoryTree, msg.proc.memory, msg.proc.processId);
+                msg.proc.mem_start = MemoryStart;
+                int total_size = pow(2, ceil(log2(msg.proc.memory)));
+                fprintf(memfptr, "At time %d allocated %d bytes for process %d from %d to %d\n", getClk(), msg.proc.memory, msg.proc.processId, MemoryStart, MemoryStart + total_size);
+                printf("At time %d allocated %d bytes for process %d from %d to %d\n", getClk(), msg.proc.memory, msg.proc.processId, MemoryStart, MemoryStart + total_size);
                 if (msg.proc.priority < i)
                 {
                     i=msg.proc.priority;    //we must set the i by the highest priority to start with
@@ -196,7 +208,7 @@ int main(int argc, char *argv[])
                 CurrentProcess->contextSwitchTime = getClk();
                 CurrentProcess->state = RUNNING;
                 kill(CurrentProcess->PID, SIGCONT);
-                printf("At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+                //printf("At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 fprintf(fptr,"At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
             }
 
@@ -210,7 +222,7 @@ int main(int argc, char *argv[])
                 CurrentProcess->state = STOPPED;
                  oldPriorityLevel = i;
                 CurrentProcess->contextSwitchTime = getClk();
-                printf("At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+                //printf("At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 fprintf(fptr,"At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 
                     //i++;   //move to the next priority level queue and perform RR on it
@@ -226,6 +238,11 @@ int main(int argc, char *argv[])
                 printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
                 fprintf(fptr,"At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
                 pfinished++;
+
+                deallocateProcess(MemoryTree, CurrentProcess->processId);
+                int total_size = pow(2, ceil(log2(CurrentProcess->memory)));
+                fprintf(memfptr, "At time %d freed %d bytes for process %d from %d to %d\n", getClk(), CurrentProcess->memory, CurrentProcess->processId, CurrentProcess->mem_start, CurrentProcess->mem_start + total_size);
+                printf("At time %d freed %d bytes for process %d from %d to %d\n", getClk(), CurrentProcess->memory, CurrentProcess->processId, CurrentProcess->mem_start, CurrentProcess->mem_start + total_size);
                 //printf("Priority level is: %d\n", i);
                 //printqueue(&priorityLevel[i]);
                 if (isEmpty_Queue(&priorityLevel[i])==1 && i<10)
@@ -272,6 +289,7 @@ void schedulerHandler(int signum)
     msgctl(msgid, IPC_RMID, NULL);
     fclose(perfptr);
     fclose(fptr);
+    fclose(memfptr);
     destroyClk(true);
     exit(0);
 }
