@@ -4,6 +4,8 @@ void childHandler(int signum);
 void schedulerHandler(int signum);
 
 struct Queue ReadyQueue;
+struct memTree *MemoryTree;
+int MemoryStart;
 int pCount = 0;
 int quantum = 0;
 int pfinished =0;
@@ -11,6 +13,7 @@ process *CurrentProcess = NULL;
 process data;
 int msgid;
 FILE *fptr; //For the .log file
+FILE *memfptr;
 int TA;
 float WTA;
 FILE *perfptr; //For the .perf file
@@ -25,6 +28,7 @@ int startclk;
 int main(int argc, char *argv[])
 {
     initClk();
+    MemoryTree = create_memTree();
     ReadyQueue=createQueue();
     // signal(SIGCHLD, childHandler);
     signal(SIGINT, schedulerHandler);
@@ -46,7 +50,11 @@ int main(int argc, char *argv[])
     int rec_val;
 
     fptr = fopen("Scheduler_RR.log", "w");
+    memfptr = fopen("Memory_RR.log", "w"); // For Files
     fprintf(fptr, "#At time x process y state arr w total z remain y wait k \n");
+    fprintf(memfptr, "#At time x allocated y bytes for process z from i to j \n");
+    printf("#At time x allocated y bytes for process z from i to j \n");
+
 
     while(pCount!=pfinished)    
     {
@@ -59,7 +67,12 @@ int main(int argc, char *argv[])
             }
             if (rec_val != -1)
             {
+                MemoryStart = allocateProcess(MemoryTree, msg.proc.memory, msg.proc.processId);
+                msg.proc.mem_start = MemoryStart;
                 enqueue(&ReadyQueue, msg.proc);
+                int total_size = pow(2, ceil(log2(msg.proc.memory)));
+                fprintf(memfptr, "At time %d allocated %d bytes for process %d from %d to %d\n", getClk(), msg.proc.memory, msg.proc.processId, MemoryStart, MemoryStart + total_size);
+                printf("At time %d allocated %d bytes for process %d from %d to %d\n", getClk(), msg.proc.memory, msg.proc.processId, MemoryStart, MemoryStart + total_size);
             }
         } while (rec_val != -1);
         
@@ -111,7 +124,7 @@ int main(int argc, char *argv[])
                 CurrentProcess->contextSwitchTime = getClk();
                 CurrentProcess->state = RUNNING;
                 kill(CurrentProcess->PID, SIGCONT);
-                printf("At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+                //printf("At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 fprintf(fptr,"At time %d process %d continued arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
             }
 
@@ -123,7 +136,7 @@ int main(int argc, char *argv[])
                 while(getClk()<startclk+quantum){}
                 CurrentProcess->state = STOPPED;
                 CurrentProcess->contextSwitchTime = getClk();
-                printf("At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
+                //printf("At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 fprintf(fptr,"At time %d process %d stopped arr %d total %d remain %d wait %d \n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime);
                 
             }else if(CurrentProcess->remainingTime <= quantum){
@@ -137,6 +150,11 @@ int main(int argc, char *argv[])
                 printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
                 fprintf(fptr,"At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", getClk(), CurrentProcess->processId, CurrentProcess->arrivalTime, CurrentProcess->runTime, CurrentProcess->remainingTime, CurrentProcess->waitingTime,TA, WTA);
                 pfinished++;
+
+                deallocateProcess(MemoryTree, CurrentProcess->processId);
+                int total_size = pow(2, ceil(log2(CurrentProcess->memory)));
+                fprintf(memfptr, "At time %d freed %d bytes for process %d from %d to %d\n", getClk(), CurrentProcess->memory, CurrentProcess->processId, CurrentProcess->mem_start, CurrentProcess->mem_start + total_size);
+                printf("At time %d freed %d bytes for process %d from %d to %d\n", getClk(), CurrentProcess->memory, CurrentProcess->processId, CurrentProcess->mem_start, CurrentProcess->mem_start + total_size);
 
                 sumRuntime+=CurrentProcess->runTime;
                 sumWaitingtime+=CurrentProcess->waitingTime;
@@ -189,6 +207,7 @@ void schedulerHandler(int signum)
     msgctl(msgid, IPC_RMID, NULL);
     fclose(perfptr);
     fclose(fptr);
+    fclose(memfptr);
     destroyClk(true);
     exit(0);
 }

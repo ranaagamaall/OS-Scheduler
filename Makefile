@@ -12,7 +12,7 @@ clean:
 	rm -f *.out
 
 run:
-	./process_generator.out processes.txt -sch 2 -q 1
+	./process_generator.out processes.txt -sch 3 -q 2
 
 all: clean build run
 
